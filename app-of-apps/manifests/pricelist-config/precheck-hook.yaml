@@ -25,7 +25,7 @@ spec:
             - "https://hooks.slack.com/services/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"
           resources:
             requests:
-              memory: "32Mi"
+              memory: "64Mi"
               cpu: "32m"
             limits:
               memory: "64Mi"
