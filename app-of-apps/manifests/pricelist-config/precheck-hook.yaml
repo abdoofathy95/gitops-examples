@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   creationTimestamp: null
-  namespace: pricelist
+  namespace: argocd
   name: hook-presync-pricelist-config
   annotations:
     argocd.argoproj.io/hook: PreSync
