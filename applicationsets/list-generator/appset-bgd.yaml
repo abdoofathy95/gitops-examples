@@ -23,7 +23,7 @@ spec:
           prune: true
           selfHeal: true
       source:
-        repoURL: https://github.com/christianh814/gitops-examples
+        repoURL: https://github.com/abdoofathy95/gitops-examples
         targetRevision: master
         path: applicationsets/list-generator/overlays/{{cluster}}
       destination:
