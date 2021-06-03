@@ -17,7 +17,7 @@ spec:
         - name: slack-notification
           image: curlimages/curl
           command:
-            - "curls"
+            - "curl"
             - "-X"
             - "POST"
             - "--data-urlencode"
