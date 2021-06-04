@@ -24,7 +24,7 @@ spec:
         - name: auth.username
           value: "pricelist"
         - name: auth.password
-          value: "pricelist"
+          value: "pricelists"
         - name: secondary.replicaCount
           value: "2"
     chart: mysql
