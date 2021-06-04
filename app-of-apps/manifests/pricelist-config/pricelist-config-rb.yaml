@@ -3,7 +3,7 @@ kind: RoleBinding
 metadata:
   creationTimestamp: null
   labels: 
-    tag: awesome-1
+    tag: awesome-2
   name: system:openshift:scc:anyuid
   namespace: pricelist
   annotations:
