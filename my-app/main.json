@@ -1,53 +1,133 @@
 [
-    
-       {
-          "apiVersion": "v1",
-          "kind": "ServiceAccount",
-          "metadata": {
-             "annotations": {
-                "argocd.argoproj.io/sync-wave": "-2",
-                "eks.amazonaws.com/role-arn": "arn:aws:iam::684154893900:role/api/application-eu-west-1-1vapi-1-k8s-argocd-aws"
-             },
-             "name": "argocd-aws-svc-acc",
-             "namespace": "argocd"
-          }
-       },
-       {
-          "apiVersion": "batch/v1",
-          "kind": "Job",
-          "metadata": {
-             "annotations": {
-                "argocd.argoproj.io/hook": "PreSync",
-                "argocd.argoproj.io/hook-delete-policy": "Never",
-                "argocd.argoproj.io/sync-wave": "-4"
-             },
-             "finalizers": [
-                "resources-finalizer.argocd.argoproj.io"
-             ],
-             "namespace": "argocd"
+    {
+       "apiVersion": "v1",
+       "kind": "ServiceAccount",
+       "metadata": {
+          "annotations": {
+             "argocd.argoproj.io/sync-wave": "-2",
+             "eks.amazonaws.com/role-arn": "arn:aws:iam::684154893900:role/api/application-eu-west-1-1vapi-1-k8s-argocd-aws"
           },
-          "spec": {
-             "backoffLimit": [
-                {
-                   "args": "echo \"check if this is working\";",
-                   "command": [
-                      "/bin/bash",
-                      "-c"
-                   ],
-                   "image": "amazon/aws-cli",
-                   "name": "awscli"
-                }
-             ],
-             "template": {
-                "spec": {
-                   "containers": "HookSucceeded",
-                   "restartPolicy": "argocd-aws-svc-acc",
-                   "serviceAccountName": 2
-                }
+          "name": "argocd-aws-svc-acc",
+          "namespace": "argocd"
+       }
+    },
+    {
+       "apiVersion": "batch/v1",
+       "kind": "Job",
+       "metadata": {
+          "annotations": {
+             "argocd.argoproj.io/hook": "PreSync",
+             "argocd.argoproj.io/hook-delete-policy": "Never",
+             "argocd.argoproj.io/sync-wave": "-4"
+          },
+          "finalizers": [
+             "resources-finalizer.argocd.argoproj.io"
+          ],
+          "namespace": "argocd"
+       },
+       "spec": {
+          "backoffLimit": [
+             {
+                "args": "echo \"check if this is working\";",
+                "command": [
+                   "/bin/bash",
+                   "-c"
+                ],
+                "image": "amazon/aws-cli",
+                "name": "awscli"
+             }
+          ],
+          "template": {
+             "spec": {
+                "containers": "HookSucceeded",
+                "restartPolicy": "argocd-aws-svc-acc",
+                "serviceAccountName": 2
              }
           }
        }
-    ,
+    },
+    {
+       "apiVersion": "v1",
+       "kind": "Namespace",
+       "metadata": {
+          "annotations": {
+             "argocd.argoproj.io/sync-wave": "-3"
+          },
+          "name": "aws-system"
+       }
+    },
+    {
+       "apiVersion": "v1",
+       "kind": "Namespace",
+       "metadata": {
+          "annotations": {
+             "argocd.argoproj.io/sync-wave": "-3"
+          },
+          "name": "monitoring"
+       }
+    },
+    {
+       "apiVersion": "argoproj.io/v1alpha1",
+       "kind": "AppProject",
+       "metadata": {
+          "annotations": {
+             "argocd.argoproj.io/sync-wave": "-5"
+          },
+          "finalizers": [
+             "resources-finalizer.argocd.argoproj.io"
+          ],
+          "namespace": "argocd"
+       },
+       "spec": {
+          "clusterResourceWhitelist": [
+             {
+                "group": "*",
+                "kind": "*"
+             }
+          ],
+          "description": "ArgoCD Project aws-system-prj",
+          "destinations": [
+             {
+                "namespace": "*",
+                "server": "*"
+             }
+          ],
+          "sourceRepos": [
+             "*"
+          ]
+       }
+    },
+    {
+       "apiVersion": "argoproj.io/v1alpha1",
+       "kind": "AppProject",
+       "metadata": {
+          "annotations": {
+             "argocd.argoproj.io/sync-wave": "-5"
+          },
+          "finalizers": [
+             "resources-finalizer.argocd.argoproj.io"
+          ],
+          "namespace": "argocd"
+       },
+       "spec": {
+          "clusterResourceWhitelist": [
+             {
+                "group": "*",
+                "kind": "*"
+             }
+          ],
+          "description": "ArgoCD Project monitoring-prj",
+          "destinations": [
+             {
+                "namespace": "*",
+                "server": "*"
+             }
+          ],
+          "sourceRepos": [
+             "*"
+          ]
+       }
+    },
     {
        "apiVersion": "argoproj.io/v1alpha1",
        "kind": "Application",
@@ -62,21 +142,15 @@
        },
        "spec": {
           "destination": {
-             "namespace": "argocd",
+             "namespace": "aws-system",
              "server": "https://kubernetes.default.svc"
           },
-          "project": "app-root-prj",
+          "project": "aws-system-prj",
           "source": {
-             "path": "argocd",
-             "plugin": {
-                "env": [
-                   {
-                      "name": "JSONNET_FILENAME",
-                      "value": "environments/dev/eu-west-1/1vapi-1/cluster-services.jsonnet"
-                   }
-                ],
-                "name": "jb"
+             "helm": {
+                "values": "{\"kubernetes-external-secrets\": {\"env\": {\"AWS_REGION\": \"eu-west-1\"}, \"podLabels\": {\"account\": \"1v-apigw-dev\", \"aws_account_id\": \"684154893900\", \"cluster_id\": \"1vapi-1\"}, \"serviceAccount\": {\"annotations\": {\"eks.amazonaws.com/role-arn\": \"arn:aws:iam::684154893900:role/api/application-eu-west-1-1vapi-1-k8s-external-secrets\"}}}}"
              },
+             "path": "helm/external-secrets",
              "repoURL": "https://github.com/vonage/1vapigw-k8s",
              "targetRevision": "master"
           },
@@ -102,21 +176,15 @@
        },
        "spec": {
           "destination": {
-             "namespace": "argocd",
+             "namespace": "aws-system",
              "server": "https://kubernetes.default.svc"
           },
-          "project": "app-root-prj",
+          "project": "aws-system-prj",
           "source": {
-             "path": "argocd",
-             "plugin": {
-                "env": [
-                   {
-                      "name": "JSONNET_FILENAME",
-                      "value": "environments/dev/eu-west-1/1vapi-1/nexmo-api-gateway.jsonnet"
-                   }
-                ],
-                "name": "jb"
+             "helm": {
+                "values": "{\"external-dns\": {\"domainFilters\": [\"api-eu.dev.v1.vonagenetworks.net\", \"api-eu.cc.dev.v1.vonagenetworks.net\", \"api-eu.uc.dev.v1.vonagenetworks.net\"], \"podLabels\": {\"account\": \"1v-apigw-dev\", \"aws_account_id\": \"684154893900\", \"cluster_id\": \"1vapi-1\"}, \"serviceAccount\": {\"annotations\": {\"eks.amazonaws.com/role-arn\": \"arn:aws:iam::684154893900:role/api/application-eu-west-1-1vapi-1-k8s-external-dns\"}}, \"txtOwnerId\": \"1v-apigw-dev-eu-west-1-1vapi-1\"}}"
              },
+             "path": "helm/external-dns",
              "repoURL": "https://github.com/vonage/1vapigw-k8s",
              "targetRevision": "master"
           },
@@ -142,21 +210,117 @@
        },
        "spec": {
           "destination": {
-             "namespace": "argocd",
+             "namespace": "aws-system",
              "server": "https://kubernetes.default.svc"
           },
-          "project": "app-root-prj",
+          "project": "aws-system-prj",
           "source": {
-             "path": "argocd",
-             "plugin": {
-                "env": [
-                   {
-                      "name": "JSONNET_FILENAME",
-                      "value": "environments/dev/eu-west-1/1vapi-1/nexmo-routes.jsonnet"
-                   }
-                ],
-                "name": "jb"
+             "helm": {
+                "values": "{\"aws-load-balancer-controller\": {\"clusterName\": \"1vapi-1\", \"podLabels\": {\"account\": \"1v-apigw-dev\", \"aws_account_id\": \"684154893900\", \"cluster_id\": \"1vapi-1\"}, \"serviceAccount\": {\"annotations\": {\"eks.amazonaws.com/role-arn\": \"arn:aws:iam::684154893900:role/api/application-eu-west-1-1vapi-1-k8s-alb-ingress-controller\"}}}}"
              },
+             "path": "helm/aws-load-balancer-controller",
+             "repoURL": "https://github.com/vonage/1vapigw-k8s",
+             "targetRevision": "master"
+          },
+          "syncPolicy": {
+             "automated": {
+                "prune": true,
+                "selfHeal": true
+             }
+          }
+       }
+    },
+    {
+       "apiVersion": "argoproj.io/v1alpha1",
+       "kind": "Application",
+       "metadata": {
+          "annotations": {
+             "argocd.argoproj.io/sync-wave": "-4"
+          },
+          "finalizers": [
+             "resources-finalizer.argocd.argoproj.io"
+          ],
+          "namespace": "argocd"
+       },
+       "spec": {
+          "destination": {
+             "namespace": "monitoring",
+             "server": "https://kubernetes.default.svc"
+          },
+          "project": "monitoring-prj",
+          "source": {
+             "helm": {
+                "values": "{\"account\": \"1v-apigw-dev\", \"aws_account_id\": \"684154893900\", \"cluster_id\": \"1vapi-1\", \"image\": {\"pullPolicy\": \"Always\", \"repository\": \"249662433244.dkr.ecr.us-east-1.amazonaws.com/fluentd\", \"tag\": \"latest\"}, \"logging\": {\"region\": \"eu-west-1\", \"url\": \"https://centralized-logs-frankfurt.tools.vonagenetworks.net:50000/\"}, \"team\": \"1v-api-gw\"}"
+             },
+             "path": "helm",
+             "repoURL": "https://github.com/Vonage/1v-fluentd.git",
+             "targetRevision": "master"
+          },
+          "syncPolicy": {
+             "automated": {
+                "prune": true,
+                "selfHeal": true
+             }
+          }
+       }
+    },
+    {
+       "apiVersion": "argoproj.io/v1alpha1",
+       "kind": "Application",
+       "metadata": {
+          "annotations": {
+             "argocd.argoproj.io/sync-wave": "-4"
+          },
+          "finalizers": [
+             "resources-finalizer.argocd.argoproj.io"
+          ],
+          "namespace": "argocd"
+       },
+       "spec": {
+          "destination": {
+             "namespace": "monitoring",
+             "server": "https://kubernetes.default.svc"
+          },
+          "project": "monitoring-prj",
+          "source": {
+             "helm": {
+                "values": "{\"podLabels\": {\"account\": \"1v-apigw-dev\", \"aws_account_id\": \"684154893900\", \"cluster_id\": \"1vapi-1\", \"region\": \"eu-west-1\"}, \"prometheus\": {\"extraLabels\": {\"eks_cluster_name\": \"1vapi-1\", \"environment\": \"dev\", \"region\": \"eu-west-1\"}, \"influxdb\": {\"url\": \"http://qa-victoriametrics.neo.vocalocity.com:8428/api/v1/write\"}}}"
+             },
+             "path": "helm/prometheus",
+             "repoURL": "https://github.com/vonage/1vapigw-k8s",
+             "targetRevision": "master"
+          },
+          "syncPolicy": {
+             "automated": {
+                "prune": true,
+                "selfHeal": true
+             }
+          }
+       }
+    },
+    {
+       "apiVersion": "argoproj.io/v1alpha1",
+       "kind": "Application",
+       "metadata": {
+          "annotations": {
+             "argocd.argoproj.io/sync-wave": "-4"
+          },
+          "finalizers": [
+             "resources-finalizer.argocd.argoproj.io"
+          ],
+          "namespace": "argocd"
+       },
+       "spec": {
+          "destination": {
+             "namespace": "monitoring",
+             "server": "https://kubernetes.default.svc"
+          },
+          "project": "monitoring-prj",
+          "source": {
+             "helm": {
+                "values": "{\"eks_cluster_name\": \"1vapi-1\", \"podLabels\": {\"account\": \"1v-apigw-dev\", \"aws_account_id\": \"684154893900\", \"cluster_id\": \"1vapi-1\", \"region\": \"eu-west-1\"}, \"region\": \"eu-west-1\"}"
+             },
+             "path": "helm/yace",
              "repoURL": "https://github.com/vonage/1vapigw-k8s",
              "targetRevision": "master"
           },
