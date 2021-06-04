@@ -2,6 +2,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   creationTimestamp: null
+  labels: 
+    tag: awesome
   name: system:openshift:scc:anyuid
   namespace: pricelist
   annotations:
